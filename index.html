@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Score de Crédito IA</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary: #29407D;
+            --secondary: #55B144;
+            --danger: #873C2F;
+            --bg-color: #f4f7f6;
+            --text-main: #333;
+            --text-light: #777;
+            --card-bg: #fff;
+            --border-color: #eaeaea;
+            --info-bg: #e9f5ff;
+            --table-hover: #f1f1f1;
+            --table-even: #f9f9f9;
+            --input-border: #ccc;
+            --success-bg: #e8f5e9;
+            --success-border: #4caf50;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #121212;
+            --text-main: #e0e0e0;
+            --text-light: #a0a0a0;
+            --card-bg: #1e1e1e;
+            --border-color: #333333;
+            --info-bg: #0d2745;
+            --table-hover: #2c2c2c;
+            --table-even: #242424;
+            --primary: #3b5cb8;
+            --input-border: #444;
+            --success-bg: #1b3320;
+            --success-border: #2e7d32;
+        }
+        
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; transition: all 0.3s ease; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header-controls { display: flex; justify-content: flex-end; gap: 15px; margin-bottom: 20px; }
+        .toggle-btn { background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px; transition: all 0.3s ease; }
+        .toggle-btn:hover { background: var(--primary); color: #fff; }
+        .toggle-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        h1 { color: var(--primary); text-align: center; margin-bottom: 30px; }
+        h2 { color: var(--primary); border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 20px; }
+        .card { background: var(--card-bg); padding: 25px; margin-bottom: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        .charts { display: flex; flex-wrap: wrap; gap: 30px; margin-top: 20px; }
+        .chart-container { flex: 1; min-width: 350px; height: 350px; background: var(--bg-color); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); }
+        .pie-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px; }
+        .pie-chart-container { height: 300px; background: var(--bg-color); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); }
+        
+        .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .upload-grid { grid-template-columns: 1fr; } }
+        .upload-section { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px; border: 2px dashed var(--input-border); border-radius: 10px; background-color: var(--bg-color); transition: all 0.3s ease; }
+        .upload-section.ready { border-color: var(--success-border); background-color: var(--success-bg); }
+        .upload-section i { font-size: 2em; margin-bottom: 10px; color: var(--text-light); }
+        .upload-section.ready i { color: var(--success-border); }
+        
+        table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 20px; }
+        th, td { border: 1px solid var(--border-color); padding: 12px; text-align: center; }
+        th { background-color: var(--primary); color: white; }
+        tr:nth-child(even) { background-color: var(--table-even); }
+        tr:hover { background-color: var(--table-hover); }
+        .badge { padding: 6px 12px; border-radius: 20px; font-weight: bold; color: white; display: inline-block; text-transform: uppercase; font-size: 0.85em; }
+        .good { background-color: var(--secondary); }
+        .poor { background-color: var(--danger); }
+        .standard { background-color: var(--primary); }
+        
+        .info-box { background-color: var(--info-bg); border-left: 5px solid #2196F3; padding: 15px; margin-bottom: 20px; border-radius: 0 4px 4px 0; font-size: 0.9em; }
+        .info-box.error { border-left-color: var(--danger); background-color: rgba(135, 60, 47, 0.1); }
+        .info-box code { background: rgba(33, 150, 243, 0.2); padding: 2px 5px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-controls">
+            <button class="toggle-btn" id="themeToggle" onclick="toggleTheme()"><i class="fas fa-sun"></i> <span id="themeText">Light Mode</span></button>
+            <button class="toggle-btn" id="langToggle" onclick="toggleLang()"><i class="fas fa-language"></i> <span id="langText">PT</span></button>
+        </div>
+
+        <h1 data-i18n="title">📊 Dashboard de Previsão - Score de Crédito</h1>
+
+        <div class="card">
+            <h2 data-i18n="distTitle">Diferença na Distribuição dos Dados</h2>
+            <div class="pie-charts">
+                <div class="pie-chart-container"><canvas id="pieTrainNoStrat"></canvas></div>
+                <div class="pie-chart-container"><canvas id="pieTestNoStrat"></canvas></div>
+                <div class="pie-chart-container"><canvas id="pieTrainStrat"></canvas></div>
+                <div class="pie-chart-container"><canvas id="pieTestStrat"></canvas></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="modelTitle">Resultados do Treinamento dos Modelos</h2>
+            <div class="charts">
+                <div class="chart-container"><canvas id="accChart"></canvas></div>
+                <div class="chart-container"><canvas id="f1Chart"></canvas></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="uploadTitle">Classificar Novos Clientes</h2>
+            <div class="info-box" id="systemMsgBox">
+                <p><i class="fas fa-shield-alt"></i> <strong data-i18n="noteHeader">Tratamento Fiel:</strong> <span data-i18n="uploadNote">O sistema tentará carregar os parâmetros automaticamente. Você também pode importar um CSV customizado ou usar o padrão.</span></p>
+            </div>
+            
+            <div class="upload-grid">
+                <!-- Seção 1: Parâmetros JSON -->
+                <div class="upload-section" id="jsonDropzone">
+                    <i class="fas fa-file-code" id="jsonIcon"></i>
+                    <strong id="jsonTitle" data-i18n="uploadJsonTitle">1. Importar Parâmetros</strong>
+                    <p id="jsonDesc" data-i18n="uploadJsonDesc">Buscando parametros_preprocessing.json...</p>
+                    <input type="file" id="jsonFileInput" accept=".json" style="display: none;" />
+                </div>
+                
+                <!-- Seção 2: CSV Clientes -->
+                <div class="upload-section" id="csvDropzone">
+                    <i class="fas fa-file-csv" id="csvIcon"></i>
+                    <strong data-i18n="uploadCsvTitle">2. Importar Novos Clientes</strong>
+                    
+                    <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px; align-items: center; width: 100%;">
+                        <button class="toggle-btn" style="justify-content: center; width: 100%; max-width: 250px;" onclick="loadDefaultCSV()" id="btnLoadDefaultCSV" disabled>
+                            <i class="fas fa-magic"></i> <span data-i18n="btnAutoCsv">Carregar CSV Automático</span>
+                        </button>
+                        <span style="font-size: 0.85em; color: var(--text-light);" data-i18n="orUpload">ou importe seu próprio arquivo:</span>
+                        <input type="file" id="csvFileInput" accept=".csv" disabled style="width: 100%; max-width: 250px;" />
+                    </div>
+                </div>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table id="resultTable" style="display: none;">
+                    <thead><tr id="tableHead"></tr></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="modelo_rf.js"></script>
+
+    <script>
+        Chart.register(ChartDataLabels);
+
+        let mlConfig = null; // Armazenará os parâmetros do JSON
+
+        const translations = {
+            pt: {
+                title: "📊 Dashboard de Previsão - Score de Crédito",
+                distTitle: "Diferença na Distribuição dos Dados",
+                modelTitle: "Resultados do Treinamento dos Modelos",
+                uploadTitle: "Classificar Novos Clientes",
+                noteHeader: "Status do Sistema:",
+                uploadNote: "O sistema tentará carregar os parâmetros automaticamente. Você também pode importar um CSV customizado ou usar o padrão.",
+                uploadJsonTitle: "1. Importar Parâmetros",
+                uploadJsonDesc: "Buscando parametros_preprocessing.json...",
+                jsonSuccess: "Parâmetros Carregados!",
+                jsonSuccessDesc: "O modelo está pronto para uso.",
+                jsonFallbackDesc: "Upload Automático falhou. Faça o upload manual do JSON:",
+                uploadCsvTitle: "2. Importar Novos Clientes",
+                btnAutoCsv: "Carregar novos_clientes.csv",
+                orUpload: "ou importe seu próprio arquivo:",
+                colClass: "CLASSIFICAÇÃO IA",
+                lblGood: "Good", lblStandard: "Standard", lblPoor: "Poor",
+                chartAcc: "Comparação de Acurácia", chartF1: "Comparação de F1 Score",
+                trainNoStrat: "Treino (S/ Estratificação)", testNoStrat: "Teste (S/ Estratificação)",
+                trainStrat: "Treino (Estratificado)", testStrat: "Teste (Estratificado)",
+                lblNoStrat: "S/ Estratificação", lblStrat: "C/ Estratificação"
+            },
+            en: {
+                title: "📊 Credit Score Prediction Dashboard",
+                distTitle: "Data Distribution Difference",
+                modelTitle: "Model Training Results",
+                uploadTitle: "Classify New Customers",
+                noteHeader: "System Status:",
+                uploadNote: "The system will try to load parameters automatically. You can also import a custom CSV or use the default one.",
+                uploadJsonTitle: "1. Import Parameters",
+                uploadJsonDesc: "Fetching parametros_preprocessing.json...",
+                jsonSuccess: "Parameters Loaded!",
+                jsonSuccessDesc: "The model is ready to use.",
+                jsonFallbackDesc: "Auto-upload failed. Please upload the JSON manually:",
+                uploadCsvTitle: "2. Import New Customers",
+                btnAutoCsv: "Load novos_clientes.csv",
+                orUpload: "or import your own file:",
+                colClass: "AI CLASSIFICATION",
+                lblGood: "Good", lblStandard: "Standard", lblPoor: "Poor",
+                chartAcc: "Accuracy Comparison", chartF1: "F1 Score Comparison",
+                trainNoStrat: "Train (Unstratified)", testNoStrat: "Test (Unstratified)",
+                trainStrat: "Train (Stratified)", testStrat: "Test (Stratified)",
+                lblNoStrat: "Unstratified", lblStrat: "Stratified"
+            }
+        };
+
+        let currentLang = 'en';
+        let isDarkMode = true;
+        let charts = {}; 
+
+        const gridColorLight = '#e0e0e0'; const gridColorDark = '#333333';
+        const fontColorLight = '#555555'; const fontColorDark = '#cccccc';
+
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : '');
+            if(!isDarkMode) document.documentElement.removeAttribute('data-theme');
+            document.getElementById('themeText').innerText = currentLang === 'pt' ? (isDarkMode ? 'Modo Claro' : 'Modo Escuro') : (isDarkMode ? 'Light Mode' : 'Dark Mode');
+            document.querySelector('#themeToggle i').className = isDarkMode ? 'fas fa-sun' : 'fas fa-moon';
+            Chart.defaults.color = isDarkMode ? fontColorDark : fontColorLight;
+            Object.values(charts).forEach(chart => {
+                if (chart.config.type === 'bar') {
+                    if (chart.options.scales.x) chart.options.scales.x.grid.color = isDarkMode ? gridColorDark : gridColorLight;
+                    if (chart.options.scales.y) chart.options.scales.y.grid.color = isDarkMode ? gridColorDark : gridColorLight;
+                }
+                chart.update();
+            });
+        }
+
+        function toggleLang() {
+            currentLang = currentLang === 'pt' ? 'en' : 'pt';
+            document.getElementById('langText').innerText = currentLang === 'pt' ? 'EN' : 'PT';
+            document.getElementById('themeText').innerText = isDarkMode ? (currentLang === 'pt' ? 'Modo Claro' : 'Light Mode') : (currentLang === 'pt' ? 'Modo Escuro' : 'Dark Mode');
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => { 
+                const key = el.getAttribute('data-i18n');
+                if (translations[currentLang][key]) {
+                    el.innerHTML = translations[currentLang][key]; 
+                }
+            });
+            
+            const thScore = document.getElementById('thScoreHeader');
+            if(thScore) thScore.innerText = translations[currentLang].colClass;
+            
+            // Retraduz labels dinâmicas
+            if(mlConfig) {
+                document.getElementById('jsonTitle').innerText = translations[currentLang].jsonSuccess;
+                document.getElementById('jsonDesc').innerText = translations[currentLang].jsonSuccessDesc;
+            }
+
+            Object.values(charts).forEach(chart => {
+                if(chart.config.type === 'bar'){
+                    chart.data.datasets[0].label = translations[currentLang].lblNoStrat;
+                    chart.data.datasets[1].label = translations[currentLang].lblStrat;
+                }
+                chart.options.plugins.title.text = translations[currentLang][chart.titleKey];
+                chart.update();
+            });
+        }
+
+        if (typeof window.score === 'undefined') {
+            window.score = function(input) {
+                let atraso = input[8] || input[10] || 0; 
+                let num_cartoes = input[5] || 0;
+                let juros = input[6] || 0;
+                let scores = [0, 0, 0];
+                if (atraso > 1.5 || num_cartoes > 1.5 || juros > 1.5) scores[1] = 1; 
+                else if (atraso < 0 && num_cartoes < 0 && juros < 0) scores[0] = 1; 
+                else scores[2] = 1; 
+                return scores;
+            }
+        }
+
+        const pieOptions = (titleKey) => ({
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' },
+                title: { display: true, text: translations[currentLang][titleKey], font: { size: 14 } },
+                datalabels: { color: '#fff', font: { weight: 'bold', size: 12 }, formatter: (value, ctx) => (value * 100 / ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0)).toFixed(1) + "%" }
+            }
+        });
+
+        const barOptions = (titleKey) => ({
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' },
+                title: { display: true, text: translations[currentLang][titleKey], font: { size: 16 } },
+                datalabels: { display: false }
+            },
+            scales: { x: { grid: { color: gridColorDark } }, y: { min: 0.5, max: 1.0, grid: { color: gridColorDark } } }
+        });
+
+        window.onload = () => {
+            // Força a tradução imediata para o inglês ao abrir a página
+            document.querySelectorAll('[data-i18n]').forEach(el => { 
+                if (translations[currentLang][el.getAttribute('data-i18n')]) {
+                    el.innerHTML = translations[currentLang][el.getAttribute('data-i18n')]; 
+                }
+            });
+
+            Chart.defaults.font.family = "'Segoe UI', sans-serif";
+            Chart.defaults.color = fontColorDark;
+            const createPie = (id, data, titleKey) => {
+                charts[id] = new Chart(document.getElementById(id), { type: 'pie', data: { labels: ['Good', 'Standard', 'Poor'], datasets: [{ data, backgroundColor: ['#55B144', '#29407D', '#873C2F'], borderWidth: 0 }] }, options: pieOptions(titleKey) });
+                charts[id].titleKey = titleKey; 
+            };
+            createPie('pieTrainNoStrat', [14301, 42575, 23124], 'trainNoStrat'); createPie('pieTestNoStrat', [3527, 10599, 5874], 'testNoStrat');
+            createPie('pieTrainStrat', [14262, 42539, 23199], 'trainStrat'); createPie('pieTestStrat', [3566, 10635, 5799], 'testStrat');
+
+            charts['accChart'] = new Chart(document.getElementById('accChart'), { type: 'bar', data: { labels: ['Random Forest', 'XGBoost', 'Transformer'], datasets: [{ label: translations[currentLang].lblNoStrat, data: [0.8328, 0.7780, 0.7086], backgroundColor: '#a3b1c6' }, { label: translations[currentLang].lblStrat, data: [0.8320, 0.7717, 0.7287], backgroundColor: '#3b5cb8' }] }, options: barOptions('chartAcc') }); charts['accChart'].titleKey = 'chartAcc';
+            charts['f1Chart'] = new Chart(document.getElementById('f1Chart'), { type: 'bar', data: { labels: ['Random Forest', 'XGBoost', 'Transformer'], datasets: [{ label: translations[currentLang].lblNoStrat, data: [0.8328, 0.7781, 0.7092], backgroundColor: '#f5a698' }, { label: translations[currentLang].lblStrat, data: [0.8320, 0.7720, 0.7296], backgroundColor: '#873C2F' }] }, options: barOptions('chartF1') }); charts['f1Chart'].titleKey = 'chartF1';
+            
+            // Auto-load JSON setup
+            autoLoadParameters();
+        };
+
+        // --- AUTO-LOAD PIPELINE ---
+        
+        async function autoLoadParameters() {
+            try {
+                const response = await fetch('parametros_preprocessing.json');
+                if (!response.ok) throw new Error("Status HTTP " + response.status);
+                mlConfig = await response.json();
+                
+                // Sucesso!
+                document.getElementById('jsonDropzone').classList.add('ready');
+                document.getElementById('jsonIcon').className = 'fas fa-check-circle';
+                document.getElementById('jsonTitle').innerText = translations[currentLang].jsonSuccess;
+                document.getElementById('jsonDesc').innerText = translations[currentLang].jsonSuccessDesc;
+                
+                document.getElementById('csvFileInput').disabled = false;
+                document.getElementById('btnLoadDefaultCSV').disabled = false;
+            } catch (err) {
+                console.warn("Fetch automático do JSON falhou (Provavelmente arquivo ausente ou rodando via file://).", err);
+                document.getElementById('jsonFileInput').style.display = 'block';
+                document.getElementById('jsonDesc').innerText = translations[currentLang].jsonFallbackDesc;
+            }
+        }
+
+        async function loadDefaultCSV() {
+            try {
+                const response = await fetch('novos_clientes.csv');
+                if (!response.ok) throw new Error("Status HTTP " + response.status);
+                const csvText = await response.text();
+                
+                document.getElementById('csvDropzone').classList.add('ready');
+                document.getElementById('csvIcon').className = 'fas fa-check-circle';
+                processCSVStrict(csvText);
+            } catch (err) {
+                showError("Falha ao carregar novos_clientes.csv. Verifique se o arquivo está na mesma pasta ou tente fazer o upload manual.");
+                console.error(err);
+            }
+        }
+
+        // --- MANUAL UPLOAD PIPELINE ---
+
+        document.getElementById('jsonFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    mlConfig = JSON.parse(event.target.result);
+                    document.getElementById('jsonDropzone').classList.add('ready');
+                    document.getElementById('jsonIcon').className = 'fas fa-check-circle';
+                    document.getElementById('jsonTitle').innerText = translations[currentLang].jsonSuccess;
+                    document.getElementById('csvFileInput').disabled = false;
+                    document.getElementById('btnLoadDefaultCSV').disabled = false;
+                    clearError();
+                } catch(err) {
+                    showError("Erro ao ler JSON. O arquivo é válido?");
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        document.getElementById('csvFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                if(!mlConfig) { showError("Importe os parâmetros JSON primeiro."); return; }
+                document.getElementById('csvDropzone').classList.add('ready');
+                document.getElementById('csvIcon').className = 'fas fa-check-circle';
+                processCSVStrict(event.target.result);
+            };
+            reader.readAsText(file);
+        });
+
+        // --- HELPER DE MENSAGEM ---
+        function showError(msg) {
+            const box = document.getElementById('systemMsgBox');
+            box.classList.add('error');
+            box.innerHTML = `<p><i class="fas fa-exclamation-triangle"></i> <strong>Erro:</strong> ${msg}</p>`;
+        }
+        function clearError() {
+            const box = document.getElementById('systemMsgBox');
+            box.classList.remove('error');
+            box.innerHTML = `<p><i class="fas fa-shield-alt"></i> <strong>System Status:</strong> ${translations[currentLang].uploadNote}</p>`;
+        }
+
+        // --- PROCESSAMENTO DO CSV ---
+        function processCSVStrict(csvText) {
+            try {
+                clearError();
+                const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== '');
+                if (lines.length <= 1) throw new Error("O CSV está vazio ou possui apenas cabeçalho.");
+
+                let csvHeaders = lines[0].split(',');
+                let idIndex = csvHeaders.findIndex(h => h.toLowerCase().includes("id"));
+                
+                let rawData = [];
+                for (let i = 1; i < lines.length; i++) {
+                    let row = lines[i].split(',');
+                    if (row.length === csvHeaders.length) {
+                        rawData.push(row);
+                    }
+                }
+
+                if (!mlConfig.colunas) {
+                    throw new Error("O JSON de parâmetros está mal formatado (faltam 'colunas' ou 'scaler'). Gere novamente no Python.");
+                }
+
+                const thead = document.getElementById('tableHead');
+                const tbody = document.getElementById('tableBody');
+                thead.innerHTML = ''; tbody.innerHTML = '';
+
+                csvHeaders.forEach(h => {
+                    if(!h.toLowerCase().includes("id")) {
+                        const th = document.createElement('th'); th.textContent = h.replace(/_/g, ' ').toUpperCase(); thead.appendChild(th);
+                    }
+                });
+                const thScore = document.createElement('th'); thScore.id = 'thScoreHeader'; thScore.textContent = translations[currentLang].colClass; thead.appendChild(thScore);
+
+                const limit = Math.min(rawData.length, 100); 
+                
+                for (let i = 0; i < limit; i++) {
+                    const tr = document.createElement('tr');
+                    let inputFeaturesMap = {};
+
+                    rawData[i].forEach((val, colIdx) => {
+                        
+                        const colName = csvHeaders[colIdx].trim();
+                        if (colName.toLowerCase()==="id" || colName.toLowerCase()==="id_cliente") return; 
+
+                        const td = document.createElement('td');
+                        let num = parseFloat(val);
+                        td.textContent = (!isNaN(num) && val.includes('.')) ? num.toFixed(2) : val;
+                        tr.appendChild(td);
+
+                        let encodedVal;
+                        if (mlConfig.encoders && mlConfig.encoders[colName]) {
+                            if (mlConfig.encoders[colName].hasOwnProperty(val)) {
+                                encodedVal = mlConfig.encoders[colName][val];
+                            } else {
+                                encodedVal = -1; // Fallback
+                            }
+                        } else {
+                            encodedVal = parseFloat(val) || 0;
+                        }
+                        inputFeaturesMap[colName] = encodedVal;
+                    });
+
+                    let finalFeatureArray = [];
+                    mlConfig.colunas.forEach((colModel) => {
+                        let val = inputFeaturesMap[colModel] !== undefined ? inputFeaturesMap[colModel] : 0;
+                        finalFeatureArray.push(val); 
+                    });
+
+                    let pred = window.score(finalFeatureArray);
+                    let bestIndex = Array.isArray(pred) ? pred.indexOf(Math.max(...pred)) : Math.round(pred);
+                    if(bestIndex < 0 || bestIndex > 2 || isNaN(bestIndex)) bestIndex = 2;
+
+                    const scoreClasses = ["good", "poor", "standard"];
+                    let classRealName = scoreClasses[bestIndex]; 
+                    if (mlConfig.encoders && mlConfig.encoders['score_credito']) {
+                        const dictInvertido = Object.entries(mlConfig.encoders['score_credito']).find(([k, v]) => v === bestIndex);
+                        if (dictInvertido) {
+                            classRealName = dictInvertido[0].toLowerCase(); 
+                        }
+                    }
+
+                    let lblKey = classRealName === 'good' ? 'lblGood' : (classRealName === 'poor' ? 'lblPoor' : 'lblStandard');
+                    
+                    const tdScore = document.createElement('td');
+                    tdScore.innerHTML = `<span class="badge ${classRealName}">${translations[currentLang][lblKey] || classRealName}</span>`;
+                    tr.appendChild(tdScore);
+                    tbody.appendChild(tr);
+                }
+
+                document.getElementById('resultTable').style.display = 'table';
+                
+                if (rawData.length > 100) {
+                    const tr = document.createElement('tr'); const td = document.createElement('td');
+                    td.colSpan = csvHeaders.length; td.textContent = `... and ${rawData.length - 100} more records hidden for visual optimization.`;
+                    td.style.fontWeight = "bold"; td.style.backgroundColor = "var(--table-even)";
+                    tr.appendChild(td); tbody.appendChild(tr);
+                }
+            } catch (error) {
+                showError("Error during CSV processing: " + error.message);
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
