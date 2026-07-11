@@ -112,7 +112,6 @@
             </div>
             
             <div class="upload-grid">
-                <!-- Seção 1: Parâmetros JSON -->
                 <div class="upload-section" id="jsonDropzone">
                     <i class="fas fa-file-code" id="jsonIcon"></i>
                     <strong id="jsonTitle" data-i18n="uploadJsonTitle">1. Importar Parâmetros</strong>
@@ -120,7 +119,6 @@
                     <input type="file" id="jsonFileInput" accept=".json" style="display: none;" />
                 </div>
                 
-                <!-- Seção 2: CSV Clientes -->
                 <div class="upload-section" id="csvDropzone">
                     <i class="fas fa-file-csv" id="csvIcon"></i>
                     <strong data-i18n="uploadCsvTitle">2. Importar Novos Clientes</strong>
@@ -149,7 +147,7 @@
     <script>
         Chart.register(ChartDataLabels);
 
-        let mlConfig = null; // Armazenará os parâmetros do JSON
+        let mlConfig = null;
 
         const translations = {
             pt: {
@@ -236,7 +234,6 @@
             const thScore = document.getElementById('thScoreHeader');
             if(thScore) thScore.innerText = translations[currentLang].colClass;
             
-            // Retraduz labels dinâmicas
             if(mlConfig) {
                 document.getElementById('jsonTitle').innerText = translations[currentLang].jsonSuccess;
                 document.getElementById('jsonDesc').innerText = translations[currentLang].jsonSuccessDesc;
@@ -285,7 +282,6 @@
         });
 
         window.onload = () => {
-            // Força a tradução imediata para o inglês ao abrir a página
             document.querySelectorAll('[data-i18n]').forEach(el => { 
                 if (translations[currentLang][el.getAttribute('data-i18n')]) {
                     el.innerHTML = translations[currentLang][el.getAttribute('data-i18n')]; 
@@ -304,19 +300,15 @@
             charts['accChart'] = new Chart(document.getElementById('accChart'), { type: 'bar', data: { labels: ['Random Forest', 'XGBoost', 'Transformer'], datasets: [{ label: translations[currentLang].lblNoStrat, data: [0.8328, 0.7780, 0.7086], backgroundColor: '#a3b1c6' }, { label: translations[currentLang].lblStrat, data: [0.8320, 0.7717, 0.7287], backgroundColor: '#3b5cb8' }] }, options: barOptions('chartAcc') }); charts['accChart'].titleKey = 'chartAcc';
             charts['f1Chart'] = new Chart(document.getElementById('f1Chart'), { type: 'bar', data: { labels: ['Random Forest', 'XGBoost', 'Transformer'], datasets: [{ label: translations[currentLang].lblNoStrat, data: [0.8328, 0.7781, 0.7092], backgroundColor: '#f5a698' }, { label: translations[currentLang].lblStrat, data: [0.8320, 0.7720, 0.7296], backgroundColor: '#873C2F' }] }, options: barOptions('chartF1') }); charts['f1Chart'].titleKey = 'chartF1';
             
-            // Auto-load JSON setup
             autoLoadParameters();
         };
 
-        // --- AUTO-LOAD PIPELINE ---
-        
         async function autoLoadParameters() {
             try {
                 const response = await fetch('parametros_preprocessing.json');
                 if (!response.ok) throw new Error("Status HTTP " + response.status);
                 mlConfig = await response.json();
                 
-                // Sucesso!
                 document.getElementById('jsonDropzone').classList.add('ready');
                 document.getElementById('jsonIcon').className = 'fas fa-check-circle';
                 document.getElementById('jsonTitle').innerText = translations[currentLang].jsonSuccess;
@@ -325,7 +317,7 @@
                 document.getElementById('csvFileInput').disabled = false;
                 document.getElementById('btnLoadDefaultCSV').disabled = false;
             } catch (err) {
-                console.warn("Fetch automático do JSON falhou (Provavelmente arquivo ausente ou rodando via file://).", err);
+                console.warn("Fetch automático do JSON falhou.", err);
                 document.getElementById('jsonFileInput').style.display = 'block';
                 document.getElementById('jsonDesc').innerText = translations[currentLang].jsonFallbackDesc;
             }
@@ -341,12 +333,9 @@
                 document.getElementById('csvIcon').className = 'fas fa-check-circle';
                 processCSVStrict(csvText);
             } catch (err) {
-                showError("Falha ao carregar novos_clientes.csv. Verifique se o arquivo está na mesma pasta ou tente fazer o upload manual.");
-                console.error(err);
+                showError("Falha ao carregar novos_clientes.csv.");
             }
         }
-
-        // --- MANUAL UPLOAD PIPELINE ---
 
         document.getElementById('jsonFileInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -381,7 +370,6 @@
             reader.readAsText(file);
         });
 
-        // --- HELPER DE MENSAGEM ---
         function showError(msg) {
             const box = document.getElementById('systemMsgBox');
             box.classList.add('error');
@@ -393,35 +381,35 @@
             box.innerHTML = `<p><i class="fas fa-shield-alt"></i> <strong>System Status:</strong> ${translations[currentLang].uploadNote}</p>`;
         }
 
-        // --- PROCESSAMENTO DO CSV ---
         function processCSVStrict(csvText) {
             try {
                 clearError();
                 const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== '');
-                if (lines.length <= 1) throw new Error("O CSV está vazio ou possui apenas cabeçalho.");
 
-                let csvHeaders = lines[0].split(',');
-                let idIndex = csvHeaders.findIndex(h => h.toLowerCase().includes("id"));
+                let csvHeaders = lines[0].split(',').map(h => h.trim());
                 
                 let rawData = [];
                 for (let i = 1; i < lines.length; i++) {
-                    let row = lines[i].split(',');
+                    let row = lines[i].split(',').map(c => c.trim());
                     if (row.length === csvHeaders.length) {
                         rawData.push(row);
                     }
                 }
 
                 if (!mlConfig.colunas) {
-                    throw new Error("O JSON de parâmetros está mal formatado (faltam 'colunas' ou 'scaler'). Gere novamente no Python.");
+                    throw new Error("O JSON de parâmetros está mal formatado (faltam 'colunas'). Gere novamente no Python.");
                 }
 
                 const thead = document.getElementById('tableHead');
                 const tbody = document.getElementById('tableBody');
                 thead.innerHTML = ''; tbody.innerHTML = '';
 
+                // CORREÇÃO 1: Evita o uso de includes("id") para não cortar idade, divida_total e idade_historico_credito
                 csvHeaders.forEach(h => {
-                    if(!h.toLowerCase().includes("id")) {
-                        const th = document.createElement('th'); th.textContent = h.replace(/_/g, ' ').toUpperCase(); thead.appendChild(th);
+                    if(h.toLowerCase() !== "id_cliente") {
+                        const th = document.createElement('th'); 
+                        th.textContent = h.replace(/_/g, ' ').toUpperCase(); 
+                        thead.appendChild(th);
                     }
                 });
                 const thScore = document.createElement('th'); thScore.id = 'thScoreHeader'; thScore.textContent = translations[currentLang].colClass; thead.appendChild(thScore);
@@ -432,10 +420,10 @@
                     const tr = document.createElement('tr');
                     let inputFeaturesMap = {};
 
+                    // CORREÇÃO 2: A mesma trava de segurança exata para as colunas de dados
                     rawData[i].forEach((val, colIdx) => {
-                        
-                        const colName = csvHeaders[colIdx].trim();
-                        if (colName.toLowerCase()==="id" || colName.toLowerCase()==="id_cliente") return; 
+                        const colName = csvHeaders[colIdx];
+                        if (colName.toLowerCase() === "id_cliente") return; 
 
                         const td = document.createElement('td');
                         let num = parseFloat(val);
@@ -455,10 +443,11 @@
                         inputFeaturesMap[colName] = encodedVal;
                     });
 
+                    // CORREÇÃO 3: Processamento puro sem a normalização (Z-Score)
                     let finalFeatureArray = [];
                     mlConfig.colunas.forEach((colModel) => {
                         let val = inputFeaturesMap[colModel] !== undefined ? inputFeaturesMap[colModel] : 0;
-                        finalFeatureArray.push(val); 
+                        finalFeatureArray.push(val);
                     });
 
                     let pred = window.score(finalFeatureArray);
