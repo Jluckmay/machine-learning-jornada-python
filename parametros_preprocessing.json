@@ -1,0 +1,64 @@
+{
+    "encoders": {
+        "profissao": {
+            "advogado": 0,
+            "arquiteto": 1,
+            "cientista": 2,
+            "contador": 3,
+            "desenvolvedor": 4,
+            "empresario": 5,
+            "engenheiro": 6,
+            "escritor": 7,
+            "gerente": 8,
+            "gerente_midia": 9,
+            "jornalista": 10,
+            "mecanico": 11,
+            "medico": 12,
+            "musico": 13,
+            "professor": 14
+        },
+        "mix_credito": {
+            "Bom": 0,
+            "Normal": 1,
+            "Ruim": 2
+        },
+        "comportamento_pagamento": {
+            "alto_gasto_pagamento_alto": 0,
+            "alto_gasto_pagamento_baixos": 1,
+            "alto_gasto_pagamento_medio": 2,
+            "baixo_gasto_pagamento_alto": 3,
+            "baixo_gasto_pagamento_baixo": 4,
+            "baixo_gasto_pagamento_medio": 5
+        },
+        "score_credito": {
+            "Good": 0,
+            "Poor": 1,
+            "Standard": 2
+        }
+    },
+    "colunas": [
+        "mes",
+        "idade",
+        "profissao",
+        "salario_anual",
+        "num_contas",
+        "num_cartoes",
+        "juros_emprestimo",
+        "num_emprestimos",
+        "dias_atraso",
+        "num_pagamentos_atrasados",
+        "num_verificacoes_credito",
+        "mix_credito",
+        "divida_total",
+        "taxa_uso_credito",
+        "idade_historico_credito",
+        "investimento_mensal",
+        "comportamento_pagamento",
+        "saldo_final_mes",
+        "emprestimo_carro",
+        "emprestimo_casa",
+        "emprestimo_pessoal",
+        "emprestimo_credito",
+        "emprestimo_estudantil"
+    ]
+}
